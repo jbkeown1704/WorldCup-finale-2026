@@ -28,4 +28,9 @@ cities_bp = Blueprint('cities', __name__)
 @cities_bp.route('/')
 def get_all():
     # TODO: Replace with your implementation (YOUR TASK #1)
-    return jsonify()
+
+    #The is the line query the database for the 16 cities in a json file
+    cities = City.query.all()
+
+    #This will convert each object of "City" and then convert them into a dictionary and return this as json file
+    return jsonify([city.to_dict() for city in cities])
