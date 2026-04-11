@@ -29,7 +29,32 @@ matches_bp = Blueprint('matches', __name__)
 @matches_bp.route('', methods=['GET'])
 def get_matches():
     # TODO: Replace with your implementation (YOUR TASK #2)
-    return jsonify([]), 200
+
+    #Starting with grabbing all of the matches from the database
+    query = Match.query
+
+    #Get the optional filters for the URLS parameters
+    city_id = request.args.get('city')
+    date = request.args.get('date')
+
+    #Apply city filter when/if it is provided
+    if city_id:
+        query = query.filter_by(city_id=city_id)
+
+    #Apply date filter if provided 
+    if date:
+        query = query.filter_by(kickoff=date)
+
+
+    #Order by kickoff date
+    query = query.order_by(Match.kickoff)
+
+    #Get all matches
+    matches = query.all()
+
+    #Convert to list of dictionaries and return as JSON
+
+    return jsonify([match.to_dict() for match in matches])
 
 
 # ============================================================
@@ -46,4 +71,14 @@ def get_matches():
 @matches_bp.route('/<id>', methods=['GET'])
 def get_match_by_id(id):
     # TODO: Replace with your implementation (YOUR TASK #2)
-    return jsonify({}), 200
+
+    #Match the match using the ID 
+    match = Match.query.get(id)
+
+    # If not found, return 404 error
+    if not match:
+        return jsonify({"error": f"Match with id '{id}' not found"}), 404
+
+
+    # Return the match as JSON
+    return jsonify(match.to_dict())
