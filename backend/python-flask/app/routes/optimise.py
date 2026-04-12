@@ -39,7 +39,36 @@ optimise_bp = Blueprint('optimise', __name__)
 @optimise_bp.route('/optimise', methods=['POST'])
 def optimise():
     # TODO: Replace with your implementation (YOUR TASK #3)
-    return jsonify({}), 200
+
+    #Debugging a 200 code 
+    print("=== OPTIMISE ENDPOINT HIT ===")
+    print(f"Request data: {request.get_json()}")
+
+
+
+    # first we have to get the "matchIds" from the request
+    data = request.get_json()
+    match_ids = data.get('matchIds', [])
+
+    #If the match id entered isnt available we add in this error handling
+    if not match_ids:
+        return jsonify({"error": "No matchIds provided"}), 400
+
+    #Now we will fetch the matches from the database 
+    matches = Match.query.filter(Match.id.in_(match_ids)).all()
+
+    #Convert the database info into a dictionary for ease of searching
+    match_dicts = [match.to_dict() for match in matches]
+
+    #Use DateOnlyStrategy first (to test)
+    from app.strategies.nearest_neighbour_strategy import NearestNeighbourStrategy
+    strategy = NearestNeighbourStrategy()
+    
+    #Optimise the route
+    result = strategy.optimise(match_dicts)
+    
+    #Return as JSON
+    return jsonify(result)
 
 
 # ============================================================
