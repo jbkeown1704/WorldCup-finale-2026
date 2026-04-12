@@ -104,8 +104,49 @@ def optimise():
 # ============================================================
 @optimise_bp.route('/budget', methods=['POST'])
 def budget_optimise():
-    # TODO: Replace with your implementation (YOUR TASK #5)
-    return jsonify({}), 200
+    # Extract data from request
+    data = request.get_json()
+    budget = data.get('budget')
+    match_ids = data.get('matchIds', [])
+    origin_city_id = data.get('originCityId')
+    
+    # Validate required fields
+    if budget is None:
+        return jsonify({"error": "Missing required field: budget"}), 400
+    if not match_ids:
+        return jsonify({"error": "Missing required field: matchIds"}), 400
+    if not origin_city_id:
+        return jsonify({"error": "Missing required field: originCityId"}), 400
+    
+    # Fetch matches from database
+    matches = Match.query.filter(Match.id.in_(match_ids)).all()
+    
+    if not matches:
+        return jsonify({"error": "No valid matches found for the provided IDs"}), 404
+    
+    # Convert to dictionaries and sort by date
+    match_dicts = [match.to_dict() for match in matches]
+    match_dicts.sort(key=lambda m: m['kickoff'])
+    
+    # Step 4: Fetch all flight prices
+    # Step 4: Fetch all flight prices
+    flight_prices_db = FlightPrice.query.all()
+    flight_prices = [
+        {
+            "from_city_id": fp.origin_city_id,      # Changed
+            "to_city_id": fp.destination_city_id,   # Changed
+            "price": fp.price_usd                    # Changed (if field is price_usd)
+        }
+        for fp in flight_prices_db
+    ]
+    
+    # Create CostCalculator instance and calculate
+    from app.utils.cost_calculator import CostCalculator
+    calculator = CostCalculator()
+    result = calculator.calculate(match_dicts, budget, origin_city_id, flight_prices)
+    
+    # Return result
+    return jsonify(result)
 
 
 # ============================================================

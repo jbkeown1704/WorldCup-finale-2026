@@ -52,38 +52,84 @@ class CostCalculator:
         Returns:
             BudgetResult dict containing feasibility, costs, and suggestions
         """
-        # TODO: Implement cost calculation (YOUR TASK #5)
-        #
-        # Pseudocode:
-        # 1. Calculate ticket costs:
-        #    - Sum of match['ticketPrice'] for all matches
-        #
-        # 2. Calculate flight costs:
-        #    - From origin_city_id to first match's city
-        #    - Between each consecutive match city (if different)
-        #    - Use get_flight_price() helper to look up prices
-        #
-        # 3. Calculate accommodation costs:
-        #    - For each city visited, calculate nights stayed
-        #    - Use calculate_nights_between() for dates
-        #    - Multiply nights by city's accommodationPerNight
-        #
-        # 4. Build CostBreakdown with all costs and total
-        #
-        # 5. Check country constraint:
-        #    - Use get_countries_visited() and get_missing_countries()
-        #    - If missing countries, set feasible = False
-        #
-        # 6. Check budget constraint:
-        #    - If total > budget, set feasible = False
-        #    - Set minimumBudgetRequired = total
-        #
-        # 7. Generate suggestions if not feasible:
-        #    - Use generate_suggestions() helper
-        #
-        # 8. Return BudgetResult with all results
-
-        raise NotImplementedError("Not implemented — this is your task!")
+        # Step 1: Calculate ticket costs
+        ticket_cost = sum(match.get('ticketPrice', 100) for match in matches)
+        
+        # Step 2: Calculate flight costs
+        flight_cost = 0
+        current_city = origin_city_id
+        
+        for match in matches:
+            match_city_id = match['city']['id']
+            flight_price = self.get_flight_price(current_city, match_city_id, flight_prices)
+            flight_cost += flight_price
+            current_city = match_city_id
+        
+        # Step 3: Calculate accommodation costs
+        accommodation_cost = 0
+        current_date = None
+        
+        for i, match in enumerate(matches):
+            match_date = match['kickoff'].split('T')[0]
+            
+            if current_date is not None and i > 0:
+                nights = self.calculate_nights_between(current_date, match_date)
+                if nights > 0:
+                    # Use previous city's accommodation rate
+                    prev_city = matches[i-1]['city']
+                    rate = prev_city.get('accommodationPerNight', 150)
+                    accommodation_cost += nights * rate
+            
+            current_date = match_date
+        
+        # Step 4: Build CostBreakdown
+        total_cost = ticket_cost + flight_cost + accommodation_cost
+        
+        cost_breakdown = {
+            "ticketCost": round(ticket_cost, 2),
+            "flightCost": round(flight_cost, 2),
+            "accommodationCost": round(accommodation_cost, 2),
+            "totalCost": round(total_cost, 2)
+        }
+        
+        # Step 5: Check country constraint
+        countries_visited = self.get_countries_visited(matches)
+        missing_countries = self.get_missing_countries(countries_visited)
+        meets_countries = len(missing_countries) == 0
+        
+        # Step 6: Check budget constraint
+        meets_budget = total_cost <= budget
+        meets_min_matches = len(matches) >= 5
+        
+        is_feasible = meets_budget and meets_countries and meets_min_matches
+        
+        # Step 7: Generate suggestions if not feasible
+        suggestions = []
+        minimum_budget_required = None
+        
+        if not is_feasible:
+            if not meets_budget:
+                minimum_budget_required = round(total_cost, 2)
+                suggestions = self.generate_suggestions(matches, total_cost, budget)
+            elif not meets_countries:
+                suggestions.append(f"Missing countries: {', '.join(missing_countries)}. You must attend at least one match in each of USA, Mexico, and Canada.")
+            elif not meets_min_matches:
+                suggestions.append(f"Only {len(matches)} matches selected. You need at least 5 matches.")
+        
+        # Step 8: Return BudgetResult
+        return {
+            "feasible": is_feasible,
+            "budget": budget,
+            "minimumBudgetRequired": minimum_budget_required,
+            "costBreakdown": cost_breakdown,
+            "countriesVisited": countries_visited,
+            "missingCountries": missing_countries,
+            "numberOfMatches": len(matches),
+            "meetsBudget": meets_budget,
+            "meetsCountries": meets_countries,
+            "meetsMinimumMatches": meets_min_matches,
+            "suggestions": suggestions
+        }
 
     # ============================================================
     # HELPER METHODS (Already implemented for you)
