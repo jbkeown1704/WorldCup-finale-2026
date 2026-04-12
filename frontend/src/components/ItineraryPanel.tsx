@@ -4,7 +4,18 @@ interface ItineraryPanelProps {
   route: OptimisedRoute;
 }
 
+
+
+
 function ItineraryPanel({ route }: ItineraryPanelProps) {
+
+    console.log('=== DEBUG ItineraryPanel ===');
+    console.log('countriesVisited:', route.countriesVisited);
+    console.log('feasible:', route.feasible);
+
+
+
+
   const requiredCountries = ['USA', 'Mexico', 'Canada'];
   const hasAllCountries = requiredCountries.every((c) => route.countriesVisited?.includes(c));
   const hasMinimumMatches = route.stops.length >= 5;

@@ -38,13 +38,9 @@ optimise_bp = Blueprint('optimise', __name__)
 
 @optimise_bp.route('/optimise', methods=['POST'])
 def optimise():
-    # TODO: Replace with your implementation (YOUR TASK #3)
-
     #Debugging a 200 code 
     print("=== OPTIMISE ENDPOINT HIT ===")
     print(f"Request data: {request.get_json()}")
-
-
 
     # first we have to get the "matchIds" from the request
     data = request.get_json()
@@ -66,6 +62,22 @@ def optimise():
     
     #Optimise the route
     result = strategy.optimise(match_dicts)
+    
+    # Add country validation to the result
+    countries_visited = set()
+    for stop in result.get('stops', []):
+        if 'city' in stop and 'country' in stop['city']:
+            countries_visited.add(stop['city']['country'])
+    
+    result['countriesVisited'] = list(countries_visited)
+    result['feasible'] = len(countries_visited) == 3 and len(result.get('stops', [])) >= 5
+    
+    missing = []
+    required = {'USA', 'Mexico', 'Canada'}
+    for country in required:
+        if country not in countries_visited:
+            missing.append(country)
+    result['missingCountries'] = missing
     
     #Return as JSON
     return jsonify(result)
