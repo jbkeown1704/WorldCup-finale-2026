@@ -2,37 +2,10 @@
  * RouteMap — YOUR TASK (Frontend)
  *
  * Display the optimised travel route on an interactive map.
- *
- * ============================================================
- * WHAT YOU NEED TO IMPLEMENT:
- * ============================================================
- *
- * Render the match details inside each marker's Popup.
- * Each stop should display:
- *   - Stop number
- *   - Team names (homeTeam vs awayTeam)
- *   - Kickoff date
- *
- * ============================================================
- * ALREADY IMPLEMENTED:
- * ============================================================
- *
- * - Map centred on North America using react-leaflet
- * - "Start" marker for the origin city
- * - Numbered markers for each stop in the route
- * - Polylines connecting the stops in order
- *
- * ============================================================
- * HINTS:
- * ============================================================
- *
- * - Use stops.map() to iterate over the stops array
- * - Access team names via stop.match.homeTeam.name and stop.match.awayTeam.name
- * - Format the date using: new Date(stop.match.kickoff).toLocaleDateString()
- *
  */
 
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 import { LatLngExpression, DivIcon } from 'leaflet';
 import { OptimisedRoute, City, ItineraryStop } from '../types';
 
@@ -140,15 +113,33 @@ function RouteMap({ route, originCity }: RouteMapProps) {
               <br />
               <span style={{ fontSize: '0.85em', color: '#666' }}>{firstStop.city.country}</span>
               <hr style={{ margin: '0.5rem 0', border: 'none', borderTop: '1px solid #ddd' }} />
-              {/* ============================================================
-                  TODO: Render match details for each stop (YOUR TASK)
-                  ============================================================
-
-                  CSS classes to use:
-                    - <div className="popup-match"> for each match
-                    - <span className="popup-match-number"> for stop number
-                    - <span className="popup-match-date"> for the date
-              */}
+              
+              {/* Render match details for each stop in this city */}
+              {stops.map((stop) => (
+                <div key={stop.stopNumber} className="popup-match" style={{ marginBottom: '0.75rem' }}>
+                  <div className="popup-match-number" style={{ fontWeight: 'bold', color: '#e94560' }}>
+                    Stop {stop.stopNumber}
+                  </div>
+                  <div style={{ margin: '0.25rem 0' }}>
+                    {stop.match?.homeTeam?.name || 'TBD'} vs {stop.match?.awayTeam?.name || 'TBD'}
+                  </div>
+                  <div className="popup-match-date" style={{ fontSize: '0.8em', color: '#666' }}>
+                    {stop.match?.kickoff ? new Date(stop.match.kickoff).toLocaleDateString('en-US', {
+                      weekday: 'short',
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    }) : 'Date TBD'}
+                  </div>
+                  {stop.distanceFromPrevious > 0 && (
+                    <div style={{ fontSize: '0.7em', color: '#999', marginTop: '0.25rem' }}>
+                      ✈️ {Math.round(stop.distanceFromPrevious)} km from previous stop
+                    </div>
+                  )}
+                </div>
+              ))}
             </Popup>
           </Marker>
         );
