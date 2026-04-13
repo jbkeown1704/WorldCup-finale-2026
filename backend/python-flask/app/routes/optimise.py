@@ -191,5 +191,41 @@ def budget_optimise():
 # ============================================================
 @optimise_bp.route('/best-value', methods=['POST'])
 def best_value():
-    # TODO: Replace with your implementation (BONUS CHALLENGE #1)
-    return jsonify({}), 200
+    try:
+        data = request.get_json()
+        budget = data.get('budget')
+        origin_city_id = data.get('originCityId')
+        
+        print(f"Received budget: {budget}, origin: {origin_city_id}", flush=True)
+        
+        if budget is None:
+            return jsonify({"error": "Missing required field: budget"}), 400
+        if not origin_city_id:
+            return jsonify({"error": "Missing required field: originCityId"}), 400
+        
+        # Fetch all matches
+        all_matches_db = Match.query.all()
+        all_matches = [match.to_dict() for match in all_matches_db]
+        print(f"Fetched {len(all_matches)} matches", flush=True)
+        
+        # Fetch flight prices
+        flight_prices_db = FlightPrice.query.all()
+        flight_prices = [
+            {"from_city_id": fp.origin_city_id, "to_city_id": fp.destination_city_id, "price": fp.price_usd}
+            for fp in flight_prices_db
+        ]
+        print(f"Fetched {len(flight_prices)} flight prices", flush=True)
+        
+        from app.bonus.best_value_finder import BestValueFinder
+        finder = BestValueFinder()
+        result = finder.find_best_value(all_matches, budget, origin_city_id, flight_prices)
+        
+        print(f"Result: {result}", flush=True)
+        
+        return jsonify(result)
+    
+    except Exception as e:
+        print(f"ERROR: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500

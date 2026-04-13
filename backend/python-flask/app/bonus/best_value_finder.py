@@ -16,33 +16,6 @@ class BestValueResult(TypedDict):
 class BestValueFinder:
     """
     BestValueFinder — BONUS CHALLENGE #1
-
-    ============================================================
-    WHAT YOU NEED TO IMPLEMENT:
-    ============================================================
-
-    Find the best combination of matches within a given budget.
-
-    Requirements:
-    - Maximize the number of matches that fit within budget
-    - Must include at least 1 match in each country (USA, Mexico, Canada)
-    - Minimum 5 matches required
-    - Return optimised route with cost breakdown
-
-    This is a combinatorial optimisation problem. You can use:
-    - Greedy approach: Start with cheapest matches, ensure country coverage
-    - Dynamic programming: Find optimal subset within budget
-    - Heuristic approach: Start with required countries, add cheapest remaining
-
-    ============================================================
-    HELPER METHODS PROVIDED:
-    ============================================================
-
-    Use the helper methods below in your implementation:
-    - get_matches_by_country(): Group matches by country
-    - get_flight_price(): Look up flight price between cities
-    - calculate_trip_cost(): Calculate total cost for a set of matches
-
     """
 
     REQUIRED_COUNTRIES = ['USA', 'Mexico', 'Canada']
@@ -56,45 +29,124 @@ class BestValueFinder:
     ) -> BestValueResult:
         """
         Find the best value combination of matches within budget.
-
-        Args:
-            all_matches: All available matches
-            budget: Maximum budget in USD
-            origin_city_id: Starting city for the trip
-            flight_prices: Available flight prices
-
-        Returns:
-            BestValueResult with the optimal match selection
+        Uses a simple greedy approach.
         """
-        # TODO: Implement best value finder (BONUS CHALLENGE #1)
-        #
-        # Suggested approach (greedy):
-        # 1. First, ensure country coverage:
-        #    - Pick the cheapest match from each required country
-        #    - This guarantees we visit USA, Mexico, and Canada
-        #
-        # 2. Sort remaining matches by "value" (e.g., ticket price / quality)
-        #
-        # 3. Greedily add matches while staying within budget:
-        #    - For each candidate match, calculate if adding it keeps us in budget
-        #    - Consider both ticket price AND added flight/accommodation costs
-        #
-        # 4. Ensure minimum 5 matches:
-        #    - If we can't reach 5 matches within budget, return withinBudget = False
-        #    - Set message explaining the constraint
-        #
-        # 5. Build the optimised route using NearestNeighbour
-        #
-        # 6. Return BestValueResult with:
-        #    - withinBudget: True/False
-        #    - matches: selected matches
-        #    - route: optimised travel route
-        #    - costBreakdown: detailed costs
-        #    - countriesVisited: list of countries
-        #    - matchCount: number of matches
-        #    - message: description of result
-
-        raise NotImplementedError("Not implemented — this is a bonus challenge!")
+        
+        # Group matches by country
+        matches_by_country = self.get_matches_by_country(all_matches)
+        
+        # Step 1: Pick the cheapest match from each required country
+        selected_matches = []
+        for country in self.REQUIRED_COUNTRIES:
+            if country not in matches_by_country or not matches_by_country[country]:
+                return {
+                    "withinBudget": False,
+                    "matches": [],
+                    "route": None,
+                    "costBreakdown": {},
+                    "countriesVisited": [],
+                    "matchCount": 0,
+                    "message": f"No matches available in {country}"
+                }
+            # Pick cheapest match in this country
+            cheapest = min(matches_by_country[country], key=lambda m: m['ticketPrice'])
+            selected_matches.append(cheapest)
+        
+        # Remove selected matches from available pool
+        remaining_matches = [m for m in all_matches if m not in selected_matches]
+        
+        # Sort remaining by ticket price (cheapest first)
+        remaining_matches.sort(key=lambda m: m['ticketPrice'])
+        
+        # Step 2: Greedily add cheapest matches while staying within budget
+        for match in remaining_matches:
+            # Test adding this match
+            test_matches = selected_matches + [match]
+            test_matches.sort(key=lambda m: m['kickoff'])
+            test_cost = self.calculate_trip_cost(test_matches, origin_city_id, flight_prices)
+            
+            if test_cost <= budget:
+                selected_matches = test_matches
+            else:
+                # Can't add this match or any more (since sorted by price)
+                break
+        
+        # Step 3: Check minimum matches requirement
+        if len(selected_matches) < 5:
+            return {
+                "withinBudget": False,
+                "matches": selected_matches,
+                "route": None,
+                "costBreakdown": self._get_cost_breakdown(selected_matches, origin_city_id, flight_prices),
+                "countriesVisited": self.REQUIRED_COUNTRIES,
+                "matchCount": len(selected_matches),
+                "message": f"Only {len(selected_matches)} matches, need at least 5"
+            }
+        
+        # Step 4: Build the optimised route
+        from app.strategies.nearest_neighbour_strategy import NearestNeighbourStrategy
+        strategy = NearestNeighbourStrategy()
+        route = strategy.optimise(selected_matches)
+        
+        # Add country info to route
+        countries_visited = set()
+        for stop in route.get('stops', []):
+            if 'city' in stop and 'country' in stop['city']:
+                countries_visited.add(stop['city']['country'])
+        
+        route['countriesVisited'] = list(countries_visited)
+        route['feasible'] = len(countries_visited) == 3 and len(route.get('stops', [])) >= 5
+        
+        missing = [c for c in self.REQUIRED_COUNTRIES if c not in countries_visited]
+        route['missingCountries'] = missing
+        
+        # Step 5: Return success result
+        return {
+            "withinBudget": True,
+            "matches": selected_matches,
+            "route": route,
+            "costBreakdown": self._get_cost_breakdown(selected_matches, origin_city_id, flight_prices),
+            "countriesVisited": list(countries_visited),
+            "matchCount": len(selected_matches),
+            "message": f"Found {len(selected_matches)} matches within ${budget:,.2f} budget"
+        }
+    
+    def _get_cost_breakdown(self, matches, origin_city_id, flight_prices):
+        """Get detailed cost breakdown for a set of matches."""
+        if not matches:
+            return {"ticketCost": 0, "flightCost": 0, "accommodationCost": 0, "totalCost": 0}
+        
+        sorted_matches = sorted(matches, key=lambda m: m['kickoff'])
+        
+        ticket_cost = sum(m['ticketPrice'] for m in sorted_matches)
+        
+        flight_cost = self.get_flight_price(
+            origin_city_id,
+            sorted_matches[0]['city']['id'],
+            flight_prices
+        )
+        for i in range(1, len(sorted_matches)):
+            flight_cost += self.get_flight_price(
+                sorted_matches[i-1]['city']['id'],
+                sorted_matches[i]['city']['id'],
+                flight_prices
+            )
+        
+        accommodation_cost = 0.0
+        for i, match in enumerate(sorted_matches):
+            nights = 1
+            if i < len(sorted_matches) - 1:
+                d1 = datetime.fromisoformat(match['kickoff'].split('T')[0])
+                d2 = datetime.fromisoformat(sorted_matches[i+1]['kickoff'].split('T')[0])
+                nights = max(1, (d2 - d1).days)
+            accommodation_cost += nights * match['city']['accommodationPerNight']
+        
+        return {
+            "ticketCost": round(ticket_cost, 2),
+            "flightCost": round(flight_cost, 2),
+            "accommodationCost": round(accommodation_cost, 2),
+            "totalCost": round(ticket_cost + flight_cost + accommodation_cost, 2)
+        }
 
     # ============================================================
     # HELPER METHODS (Already implemented for you)
