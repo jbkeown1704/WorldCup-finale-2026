@@ -4,35 +4,6 @@ import { BestValueResult } from '../types';
  * BestValueDialog — BONUS CHALLENGE #2
  *
  * Displays the results from the Best Value Finder API.
- *
- * ============================================================
- * WHAT YOU NEED TO IMPLEMENT:
- * ============================================================
- *
- * Render the list of recommended matches in the "Recommended Matches" section.
- * Each match should display:
- *   - Team names (homeTeam vs awayTeam)
- *   - City name
- *   - Kickoff date and time
- *   - Ticket price
- *
- * ============================================================
- * HINTS:
- * ============================================================
- *
- * - Use matches.map() to iterate over the matches array
- * - Format the kickoff date using: new Date(match.kickoff).toLocaleDateString()
- * - The match object contains: homeTeam, awayTeam, city, kickoff, ticketPrice
- *
- * ============================================================
- * CSS CLASSES TO USE:
- * ============================================================
- *
- * - <li className="match-item"> — wrapper for each match
- * - <div className="match-teams"> — for team names
- * - <div className="match-details"> — wrapper for city, date, price
- * - <span className="ticket-price"> — for the ticket price
- *
  */
 
 interface BestValueDialogProps {
@@ -60,25 +31,25 @@ function BestValueDialog({ result, budget, onClose, onApply }: BestValueDialogPr
             <span>{message}</span>
           </div>
 
-          {/* Cost Summary */}
+          {/* Cost Summary - FIXED FIELD NAMES */}
           {costBreakdown && (
             <div className="best-value-costs">
               <h4>Cost Breakdown</h4>
               <div className="cost-row">
                 <span>Flights</span>
-                <span>${costBreakdown.flights.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span>${costBreakdown.flightCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               <div className="cost-row">
                 <span>Accommodation</span>
-                <span>${costBreakdown.accommodation.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span>${costBreakdown.accommodationCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               <div className="cost-row">
                 <span>Match Tickets</span>
-                <span>${costBreakdown.tickets.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span>${costBreakdown.ticketCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               <div className={`cost-row cost-total ${!withinBudget ? 'over-budget' : ''}`}>
                 <span>Total</span>
-                <span>${costBreakdown.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span>${costBreakdown.totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               <div className="cost-row budget-row">
                 <span>Your Budget</span>
@@ -102,16 +73,19 @@ function BestValueDialog({ result, budget, onClose, onApply }: BestValueDialogPr
             <h4>Recommended Matches ({matchCount})</h4>
             <ul className="match-list">
               {matches.map((match) => {
+                const homeTeam = typeof match.homeTeam === 'string' ? match.homeTeam : match.homeTeam?.name;
+                const awayTeam = typeof match.awayTeam === 'string' ? match.awayTeam : match.awayTeam?.name;
+                const cityName = typeof match.city === 'string' ? match.city : match.city?.name;
                 const kickoff = new Date(match.kickoff);
                 const dateStr = kickoff.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
                 const timeStr = kickoff.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
                 return (
                   <li key={match.id} className="match-item">
                     <div className="match-teams">
-                      {match.homeTeam.name} vs {match.awayTeam.name}
+                      {homeTeam} vs {awayTeam}
                     </div>
                     <div className="match-details">
-                      <span>{match.city.name}</span>
+                      <span>{cityName}</span>
                       <span>{dateStr}, {timeStr}</span>
                       <span className="ticket-price">${match.ticketPrice}</span>
                     </div>
