@@ -62,3 +62,157 @@ strategy = NearestNeighbourStrategy()
 # Could easily switch to:
 strategy = DateOnlyStrategy()  # Already implemented
 strategy = OptimisedStrategy()  # Future improvement
+
+
+📁 WorldCup-finale-2026/
+│
+├── 📁 backend/
+│   └── 📁 python-flask/
+│       │
+│       ├── 📁 app/
+│       │   │
+│       │   ├── 📁 bonus/
+│       │   │   └── 📄 best_value_finder.py     ← Bonus: finds best matches within budget
+│       │   │
+│       │   ├── 📁 models/
+│       │   │   ├── 📄 city.py                  ← City database model
+│       │   │   ├── 📄 match.py                 ← Match database model
+│       │   │   ├── 📄 team.py                  ← Team database model
+│       │   │   └── 📄 flight_price.py          ← Flight prices model
+│       │   │
+│       │   ├── 📁 routes/
+│       │   │   ├── 📄 cities.py                ← GET /api/cities (Task #1)
+│       │   │   ├── 📄 matches.py               ← GET /api/matches (Task #2)
+│       │   │   ├── 📄 optimise.py              ← POST /optimise, /budget, /best-value (Tasks #3, #5, Bonus)
+│       │   │   └── 📄 itineraries.py           ← Pre-built (save/load trips)
+│       │   │
+│       │   ├── 📁 strategies/
+│       │   │   ├── 📄 route_strategy.py        ← Strategy interface
+│       │   │   ├── 📄 date_only_strategy.py    ← Naive example (working)
+│       │   │   └── 📄 nearest_neighbour_strategy.py  ← YOUR algorithm (Task #3)
+│       │   │
+│       │   ├── 📁 utils/
+│       │   │   ├── 📄 haversine.py             ← Distance calculator (pre-built)
+│       │   │   └── 📄 cost_calculator.py       ← Budget calculator (Task #5)
+│       │   │
+│       │   ├── 📄 __init__.py                  ← Flask app factory
+│       │   ├── 📄 db.py                        ← Database setup
+│       │   └── 📄 seed.py                      ← Seeds SQLite database
+│       │
+│       ├── 📁 tests/
+│       │   └── 📄 test_nearest_neighbour_strategy.py  ← 3 unit tests (Task #4)
+│       │
+│       ├── 📁 venv/                            ← Python virtual environment
+│       ├── 📄 worldcup.db                      ← SQLite database (auto-created)
+│       └── 📄 requirements.txt                 ← Python dependencies
+│
+├── 📁 frontend/
+│   │
+│   ├── 📁 src/
+│   │   │
+│   │   ├── 📁 components/
+│   │   │   ├── 📄 RouteMap.tsx                 ← Map with markers (Frontend Task)
+│   │   │   ├── 📄 ItineraryPanel.tsx           ← Route validation display
+│   │   │   ├── 📄 CostBreakdownPanel.tsx       ← Budget breakdown display
+│   │   │   ├── 📄 BestValueDialog.tsx          ← Bonus dialog
+│   │   │   ├── 📄 MatchBrowser.tsx             ← Match list/filters
+│   │   │   └── 📄 MatchCard.tsx                ← Individual match card
+│   │   │
+│   │   ├── 📁 types/
+│   │   │   └── 📄 index.ts                     ← TypeScript interfaces
+│   │   │
+│   │   ├── 📁 api/
+│   │   │   └── 📄 client.ts                    ← API calls to backend
+│   │   │
+│   │   ├── 📄 App.tsx                          ← Main app component
+│   │   └── 📄 main.tsx                         ← Entry point
+│   │
+│   ├── 📁 __tests__/                           ← Frontend tests (nice-to-have)
+│   ├── 📄 package.json                         ← Node dependencies
+│   └── 📄 index.html                           ← HTML entry point
+│
+├── 📁 seed-data/
+│   ├── 📄 cities.json                          ← 16 cities with coordinates
+│   ├── 📄 matches.json                         ← 48 matches with teams
+│   └── 📄 teams.json                           ← 48 teams data
+│
+├── 📁 postman/
+│   └── 📄 WorldCup2026_API.postman_collection.json  ← API test collection
+│
+├── 📄 README.md                                ← Setup instructions (you write)
+├── 📄 DECISIONS.md                             ← Design decisions (you write)
+└── 📄 .gitignore                               ← Git ignore rules
+
+
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              USER BROWSER                                    │
+│                           http://localhost:5173                              │
+└─────────────────────────────────┬───────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           REACT FRONTEND                                     │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+│  │ MatchBrowser │  │RouteMap     │  │ItineraryPanel│ │CostBreakdown│        │
+│  │ (select     │  │(Leaflet map │  │(validation) │  │Panel        │        │
+│  │  matches)   │  │ with popups)│  │             │  │             │        │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘        │
+│         │                │                │                │               │
+│         └────────────────┴────────────────┴────────────────┘               │
+│                                    │                                        │
+│                                    │ API calls via /api/*                   │
+│                                    ▼                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                  │
+                                  │ http://localhost:3008
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           FLASK BACKEND                                     │
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────┐    │
+│  │                         ROUTES (Blueprints)                         │    │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────────┐  │    │
+│  │  │ /api/cities  │  │ /api/matches │  │ /api/route/optimise       │  │    │
+│  │  │ (Task #1)    │  │ (Task #2)    │  │ (Task #3)                 │  │    │
+│  │  └──────────────┘  └──────────────┘  └──────────────────────────┘  │    │
+│  │                                                                      │    │
+│  │  ┌──────────────────────────┐  ┌──────────────────────────────┐    │    │
+│  │  │ /api/route/budget        │  │ /api/route/best-value        │    │    │
+│  │  │ (Task #5)                │  │ (Bonus)                      │    │    │
+│  │  └──────────────────────────┘  └──────────────────────────────┘    │    │
+│  └────────────────────────────────────────────────────────────────────┘    │
+│                                    │                                        │
+│                                    ▼                                        │
+│  ┌────────────────────────────────────────────────────────────────────┐    │
+│  │                      STRATEGY PATTERN                               │    │
+│  │  ┌─────────────────────────┐    ┌─────────────────────────────┐   │    │
+│  │  │ DateOnlyStrategy        │    │ NearestNeighbourStrategy    │   │    │
+│  │  │ (naive - sort by date)  │    │ (YOUR algorithm)            │   │    │
+│  │  └─────────────────────────┘    └─────────────────────────────┘   │    │
+│  └────────────────────────────────────────────────────────────────────┘    │
+│                                    │                                        │
+│                                    ▼                                        │
+│  ┌────────────────────────────────────────────────────────────────────┐    │
+│  │                    SQLAlchemy ORM                                   │    │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────────────────┐    │    │
+│  │  │ City     │ │ Match    │ │ Team     │ │ FlightPrice        │    │    │
+│  │  │ model    │ │ model    │ │ model    │ │ model              │    │    │
+│  │  └──────────┘ └──────────┘ └──────────┘ └────────────────────┘    │    │
+│  └────────────────────────────────────────────────────────────────────┘    │
+│                                    │                                        │
+│                                    ▼                                        │
+│  ┌────────────────────────────────────────────────────────────────────┐    │
+│  │                         SQLite Database                              │    │
+│  │                         (worldcup.db)                               │    │
+│  │                                                                      │    │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                 │    │
+│  │  │ cities      │  │ matches     │  │ teams       │                 │    │
+│  │  │ (16 rows)   │  │ (48 rows)   │  │ (48 rows)   │                 │    │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘                 │    │
+│  │  ┌─────────────────────────────────────────────────────┐           │    │
+│  │  │ flight_prices (240 rows)                            │           │    │
+│  │  └─────────────────────────────────────────────────────┘           │    │
+│  └────────────────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────────────┘
