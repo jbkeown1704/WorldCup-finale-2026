@@ -139,9 +139,8 @@ def budget_optimise():
     # Convert to dictionaries and sort by date
     match_dicts = [match.to_dict() for match in matches]
     match_dicts.sort(key=lambda m: m['kickoff'])
-    
-    # Step 4: Fetch all flight prices
-    # Step 4: Fetch all flight prices
+
+    # Fetch all flight prices
     flight_prices_db = FlightPrice.query.all()
     flight_prices = [
         {

@@ -12,7 +12,7 @@ interface BestValueDialogProps {
   onClose: () => void;
   onApply: () => void;
 }
-
+// Format: "15 Jun, 19:00" - British format for consistency
 function BestValueDialog({ result, budget, onClose, onApply }: BestValueDialogProps) {
   const { withinBudget, matches, costBreakdown, countriesVisited, matchCount, message } = result;
 
@@ -73,6 +73,7 @@ function BestValueDialog({ result, budget, onClose, onApply }: BestValueDialogPr
             <h4>Recommended Matches ({matchCount})</h4>
             <ul className="match-list">
               {matches.map((match) => {
+                // Handle both string and object formats for teams/cities (API can return either)
                 const homeTeam = typeof match.homeTeam === 'string' ? match.homeTeam : match.homeTeam?.name;
                 const awayTeam = typeof match.awayTeam === 'string' ? match.awayTeam : match.awayTeam?.name;
                 const cityName = typeof match.city === 'string' ? match.city : match.city?.name;

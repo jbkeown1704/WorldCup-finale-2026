@@ -41,10 +41,9 @@ def get_matches():
     if city_id:
         query = query.filter_by(city_id=city_id)
 
-    #Apply date filter if provided 
+    #Apply date filter if provided (matches date part only, ignores time)
     if date:
-        query = query.filter_by(kickoff=date)
-
+        query = query.filter(Match.kickoff.like(f'{date}%'))
 
     #Order by kickoff date
     query = query.order_by(Match.kickoff)
@@ -53,7 +52,6 @@ def get_matches():
     matches = query.all()
 
     #Convert to list of dictionaries and return as JSON
-
     return jsonify([match.to_dict() for match in matches])
 
 

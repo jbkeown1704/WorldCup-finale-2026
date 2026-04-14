@@ -35,7 +35,7 @@ class BestValueFinder:
         # Group matches by country
         matches_by_country = self.get_matches_by_country(all_matches)
         
-        # Step 1: Pick the cheapest match from each required country
+        #Pick the cheapest match from each required country
         selected_matches = []
         for country in self.REQUIRED_COUNTRIES:
             if country not in matches_by_country or not matches_by_country[country]:
@@ -58,7 +58,7 @@ class BestValueFinder:
         # Sort remaining by ticket price (cheapest first)
         remaining_matches.sort(key=lambda m: m['ticketPrice'])
         
-        # Step 2: Greedily add cheapest matches while staying within budget
+        #Greedily add cheapest matches while staying within budget
         for match in remaining_matches:
             # Test adding this match
             test_matches = selected_matches + [match]
@@ -71,7 +71,7 @@ class BestValueFinder:
                 # Can't add this match or any more (since sorted by price)
                 break
         
-        # Step 3: Check minimum matches requirement
+        # Check minimum matches requirement
         if len(selected_matches) < 5:
             return {
                 "withinBudget": False,
@@ -83,7 +83,7 @@ class BestValueFinder:
                 "message": f"Only {len(selected_matches)} matches, need at least 5"
             }
         
-        # Step 4: Build the optimised route
+        # Build the optimised route
         from app.strategies.nearest_neighbour_strategy import NearestNeighbourStrategy
         strategy = NearestNeighbourStrategy()
         route = strategy.optimise(selected_matches)

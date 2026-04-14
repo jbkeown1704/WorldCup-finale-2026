@@ -42,7 +42,7 @@ class NearestNeighbourStrategy(RouteStrategy):
             # Add the current match to the list for this date
             grouped_by_date[date].append(match)
         
-        # STEP 3: Build the route using nearest-neighbour logic
+        # Build the route using nearest-neighbour logic
         # ordered_matches will store matches in the order we plan to attend them
         ordered_matches = []
         
@@ -97,7 +97,7 @@ class NearestNeighbourStrategy(RouteStrategy):
             # This affects which city is "closest" for the next day's choice
             current_city = chosen_match['city']
         
-        # STEP 4: Return the result in the format expected by the API
+        # Return the result in the format expected by the API
         # build_route calculates:
         #   - stop numbers (1, 2, 3...)
         #   - distance from previous stop
